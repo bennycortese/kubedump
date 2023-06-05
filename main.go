@@ -13,7 +13,7 @@ import (
 
 func main() {
 	// use the current context in kubeconfig
-	config, err := clientcmd.BuildConfigFromFlags("", "/home/jon/.kube/config")
+	config, err := clientcmd.BuildConfigFromFlags("", "/home/bennystream/.kube/config")
 	if err != nil {
 		panic(err)
 	}
@@ -30,6 +30,7 @@ func main() {
 }
 
 func do(clientset kubernetes.Interface) error {
+
 	dep := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "nginx",
@@ -64,11 +65,29 @@ func do(clientset kubernetes.Interface) error {
 	}
 
 	ctx := context.Background()
-	created, err := clientset.AppsV1().Deployments("default").Create(ctx, dep, metav1.CreateOptions{})
+
+	_, err := clientset.AppsV1().Deployments("default").Create(ctx, dep, metav1.CreateOptions{})
 	if err != nil {
 		return err
 	}
-	fmt.Println(created.Namespace)
+
+	deploymentsList, err := clientset.AppsV1().Deployments("default").List(ctx, metav1.ListOptions{})
+
+	if err != nil {
+		return err
+	}
+	if len(deploymentsList.Items) > 0 {
+		created := &deploymentsList.Items[0]
+		replicas := int32(2)
+		created.Spec.Replicas = &replicas
+
+		_, err = clientset.AppsV1().Deployments("default").Update(ctx, created, metav1.UpdateOptions{})
+		if err != nil {
+			return err
+		}
+		fmt.Println("updated")
+	}
+	fmt.Println(len(deploymentsList.Items))
 
 	// time.Sleep(1 * time.Second)
 
@@ -80,19 +99,21 @@ func do(clientset kubernetes.Interface) error {
 	// 	fmt.Println("deleted")
 	// }()
 
-	created, err = clientset.AppsV1().Deployments("default").Get(ctx, dep.Name, metav1.GetOptions{})
-	if err != nil {
-		return err
-	}
+	/*
+		created, err = clientset.AppsV1().Deployments("default").Get(ctx, dep.Name, metav1.GetOptions{})
+		if err != nil {
+			return err
+		}
 
-	replicas := int32(5)
-	created.Spec.Replicas = &replicas
+		replicas := int32(2)
+		created.Spec.Replicas = &replicas
 
-	_, err = clientset.AppsV1().Deployments("default").Update(ctx, created, metav1.UpdateOptions{})
-	if err != nil {
-		return err
-	}
-	fmt.Println("updated")
+		_, err = clientset.AppsV1().Deployments("default").Update(ctx, created, metav1.UpdateOptions{})
+		if err != nil {
+			return err
+		}
+		fmt.Println("updated")
+	*/
 
 	// err = wait.PollImmediate(100*time.Millisecond, 5*time.Second, func() (bool, error) {
 	// 	created, err := clientset.AppsV1().Deployments("default").Get(ctx, dep.Name, metav1.GetOptions{})
