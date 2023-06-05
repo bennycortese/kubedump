@@ -66,19 +66,22 @@ func do(clientset kubernetes.Interface) error {
 
 	ctx := context.Background()
 
-	_, err := clientset.AppsV1().Deployments("default").Create(ctx, dep, metav1.CreateOptions{})
-	if err != nil {
-		return err
-	}
-
 	deploymentsList, err := clientset.AppsV1().Deployments("default").List(ctx, metav1.ListOptions{})
 
 	if err != nil {
 		return err
 	}
+
+	if len(deploymentsList.Items) == 0 {
+		_, err := clientset.AppsV1().Deployments("default").Create(ctx, dep, metav1.CreateOptions{})
+		if err != nil {
+			return err
+		}
+	}
+
 	if len(deploymentsList.Items) > 0 {
 		created := &deploymentsList.Items[0]
-		replicas := int32(2)
+		replicas := int32(5)
 		created.Spec.Replicas = &replicas
 
 		_, err = clientset.AppsV1().Deployments("default").Update(ctx, created, metav1.UpdateOptions{})
