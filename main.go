@@ -11,6 +11,31 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
+func cacheNodeOsImage(osImageString string) {
+	fmt.Println(osImageString)
+	// TODO - figure out what to put here
+}
+
+func updateNodes(clientset kubernetes.Interface) error {
+	ctx := context.Background()
+
+	nodesList, err := clientset.CoreV1().Nodes().List(ctx, metav1.ListOptions{})
+
+	if err != nil {
+		return err
+	}
+
+	if len(nodesList.Items) == 0 {
+		fmt.Println("Oh no!")
+	} else {
+		for _, node := range nodesList.Items {
+			cacheNodeOsImage(node.Status.NodeInfo.OSImage)
+		}
+	}
+
+	return nil
+}
+
 func main() {
 	// use the current context in kubeconfig
 	config, err := clientcmd.BuildConfigFromFlags("", "/home/bennystream/.kube/config")
@@ -63,6 +88,8 @@ func do(clientset kubernetes.Interface) error {
 			},
 		},
 	}
+
+	updateNodes(clientset)
 
 	ctx := context.Background()
 
